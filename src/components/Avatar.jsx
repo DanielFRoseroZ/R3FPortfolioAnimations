@@ -9,9 +9,12 @@ import { useControls } from "leva";
 import * as THREE from "three";
 
 export function Avatar(props) {
-  const { headFollow, cursorFollow } = useControls({
+  const { animation } = props;
+
+  const { headFollow, cursorFollow, wireFrame } = useControls({
     headFollow: false,
     cursorFollow: false,
+    wireFrame: false,
   });
 
   const group = useRef();
@@ -19,10 +22,14 @@ export function Avatar(props) {
   const { nodes, materials } = useGLTF("/models/652c6f04a03b91ea2abc7e06.glb");
 
   const { animations: typingAnimation } = useFBX("/animations/Typing.fbx");
+  const { animations: fallingAnimation } = useFBX("/animations/Falling Idle.fbx");
+  const { animations: standingAnimation } = useFBX("/animations/Standing Idle.fbx");
 
   typingAnimation[0].name = "Typing";
+  fallingAnimation[0].name = "Falling";
+  standingAnimation[0].name = "Standing";
 
-  const { actions } = useAnimations(typingAnimation, group);
+  const { actions } = useAnimations([typingAnimation[0], standingAnimation[0], fallingAnimation[0]], group);
 
   useFrame((state) => {
     if (headFollow) {
@@ -35,10 +42,17 @@ export function Avatar(props) {
   })
 
   useEffect(() => {
-    actions["Typing"].reset().play();
-  }, []);
+    actions[animation].reset().fadeIn(0.5).play();
+    return () => {
+        actions[animation].reset().fadeOut(0.5);
+    };
+  }, [animation]);
 
-  console.log(typingAnimation);
+  useEffect(() => {
+    Object.values(materials).forEach((material) => {
+        material.wireframe = wireFrame;
+    })
+  }, [wireFrame]);
 
   return (
     <group {...props} ref={group} dispose={null}>
